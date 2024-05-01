@@ -2,7 +2,6 @@ import tkinter as tk
 from tkinter import messagebox
 import csv
 
-# Clasa pentru un cont bancar
 class ContBancar:
     def __init__(self, nume, prenume, iban, sold=0, tip_cont='Lei'):
         self.nume = nume
@@ -11,27 +10,23 @@ class ContBancar:
         self.sold = sold
         self.tip_cont = tip_cont
 
-    # Metodă pentru afișarea informațiilor despre cont
     def afiseaza_informatii(self):
         return f"IBAN: {self.iban}\nNume: {self.nume}\nPrenume: {self.prenume}\nSold: {self.sold} {self.tip_cont}"
 
-    # Metodă pentru a depune bani în cont
     def depune_bani(self, suma):
         if suma > 0:
             self.sold += suma
-            return f"Ai depus {suma} {self.tip_cont} în contul IBAN: {self.iban}"
+            return f"Ai depus {suma} {self.tip_cont} în contul cu IBAN: {self.iban}"
         else:
             return "Suma introdusă nu este validă pentru depunere."
 
-    # Metodă pentru a retrage bani din cont
     def retrage_bani(self, suma):
         if suma > 0 and self.sold >= suma:
             self.sold -= suma
-            return f"Ai retras {suma} {self.tip_cont} din contul IBAN: {self.iban}"
+            return f"Ai retras {suma} {self.tip_cont} din contul cu IBAN: {self.iban}"
         else:
             return "Fonduri insuficiente pentru retragerea sumei solicitate."
 
-# Clasa pentru interfața grafică a aplicației
 class ITSchoolBankGUI(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -42,7 +37,7 @@ class ITSchoolBankGUI(tk.Tk):
         # Creăm fereastra de bun venit
         self.afisare_bun_venit()
 
-        self.conturi = []  # Lista pentru a stoca conturile bancare
+        self.conturi = []
 
         # Creare meniu principal
         meniu_principal = tk.Menu(self)
@@ -56,7 +51,6 @@ class ITSchoolBankGUI(tk.Tk):
         meniu_principal.add_command(label="Salvare în fișier CSV", command=self.salvare_in_csv)
         meniu_principal.add_command(label="Ieșire", command=self.destroy)
 
-    # Funcție pentru afișarea mesajului de bun venit
     def afisare_bun_venit(self):
         label_bun_venit = tk.Label(self, text="Bun venit la banca Ana Pug - ITSchoolBank!", font=("Arial", 20, "bold"), bg="lightblue", fg="darkblue")
         label_bun_venit.pack(pady=20)
@@ -64,23 +58,18 @@ class ITSchoolBankGUI(tk.Tk):
         label_mesaj = tk.Label(self, text="Cu ce vă pot ajuta astăzi?", font=("Arial", 16), bg="lightblue", fg="darkblue")
         label_mesaj.pack(pady=10)
 
-    # Funcție pentru afișarea numărului total de conturi
     def afisare_numar_conturi(self):
         messagebox.showinfo("Număr de conturi", f"Numărul total de conturi înregistrate: {len(self.conturi)}")
 
-    # Funcție pentru deschiderea dialogului de creare cont nou
     def deschide_creare_cont(self):
         dialog_creare_cont = CreareContDialog(self)
 
-    # Funcție pentru deschiderea dialogului de ștergere cont
     def deschide_stergere_cont(self):
         dialog_stergere_cont = StergereContDialog(self)
 
-    # Funcție pentru deschiderea dialogului de afișare sold cont
     def deschide_afisare_sold(self):
         dialog_afisare_sold = AfisareSoldDialog(self)
 
-    # Funcție pentru salvarea conturilor într-un fișier CSV
     def salvare_in_csv(self):
         fisier_csv = "conturi.csv"
         with open(fisier_csv, 'w', newline='') as csvfile:
@@ -97,7 +86,6 @@ class ITSchoolBankGUI(tk.Tk):
                     'Tip Cont': cont.tip_cont
                 })
 
-# Clasa pentru dialogul de creare cont nou
 class CreareContDialog(tk.Toplevel):
     def __init__(self, master):
         super().__init__(master)
@@ -126,7 +114,6 @@ class CreareContDialog(tk.Toplevel):
 
         tk.Button(self, text="Creare Cont", command=self.creare_cont).pack()
 
-    # Funcție pentru crearea unui cont nou
     def creare_cont(self):
         nume = self.nume_entry.get()
         prenume = self.prenume_entry.get()
@@ -142,7 +129,6 @@ class CreareContDialog(tk.Toplevel):
             messagebox.showinfo("Succes", f"Contul a fost creat cu succes pentru IBAN-ul: {iban}")
             self.destroy()
 
-# Clasa pentru dialogul de ștergere a unui cont
 class StergereContDialog(tk.Toplevel):
     def __init__(self, master):
         super().__init__(master)
@@ -158,7 +144,6 @@ class StergereContDialog(tk.Toplevel):
 
         tk.Button(self, text="Ștergere Cont", command=self.sterge_cont).pack()
 
-    # Funcție pentru ștergerea unui cont existent
     def sterge_cont(self):
         iban = self.iban_entry.get()
 
@@ -171,12 +156,11 @@ class StergereContDialog(tk.Toplevel):
 
         messagebox.showerror("Eroare", f"Contul cu IBAN-ul {iban} nu a fost găsit în sistem.")
 
-# Clasa pentru dialogul de afișare a soldului unui cont
 class AfisareSoldDialog(tk.Toplevel):
     def __init__(self, master):
         super().__init__(master)
-        self.title("Afișare Sold Cont")
-        self.geometry("300x200")
+        self.title("Afișare și Depunere Sold Cont")
+        self.geometry("300x250")
         self.configure(bg='lightgreen')
 
         self.master = master
@@ -185,11 +169,15 @@ class AfisareSoldDialog(tk.Toplevel):
         self.iban_entry = tk.Entry(self)
         self.iban_entry.pack()
 
-        tk.Button(self, text="Afișare Sold", command=self.afisare_sold).pack()
+        tk.Label(self, text="Suma de depus:").pack()
+        self.suma_entry = tk.Entry(self)
+        self.suma_entry.pack()
 
-    # Funcție pentru afișarea soldului unui cont
-    def afisare_sold(self):
+        tk.Button(self, text="Afișare și Depunere Sold", command=self.afisare_si_depunere_sold).pack()
+
+    def afisare_si_depunere_sold(self):
         iban = self.iban_entry.get()
+        suma = float(self.suma_entry.get())
 
         cont_gasit = None
         for cont in self.master.conturi:
@@ -198,11 +186,12 @@ class AfisareSoldDialog(tk.Toplevel):
                 break
 
         if cont_gasit:
-            messagebox.showinfo("Sold Cont", f"Soldul pentru IBAN-ul {iban} este: {cont_gasit.sold} {cont_gasit.tip_cont}")
+            cont_gasit.depune_bani(suma)  # Depune suma în cont
+            messagebox.showinfo("Depunere Reușită", f"Ai depus {suma} {cont_gasit.tip_cont} în contul cu IBAN-ul {iban}.")
+            self.destroy()
         else:
             messagebox.showerror("Eroare", "IBAN-ul introdus nu a fost găsit în sistem.")
 
-# Punctul de intrare în aplicație
 if __name__ == "__main__":
     app = ITSchoolBankGUI()
     app.mainloop()
