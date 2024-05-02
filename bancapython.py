@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, simpledialog
 import csv
 
 class ContBancar:
@@ -38,18 +38,10 @@ class ITSchoolBankGUI(tk.Tk):
         self.afisare_bun_venit()
 
         self.conturi = []
+        self.load_data()  # Încarcăm datele din fișierul CSV
 
         # Creare meniu principal
-        meniu_principal = tk.Menu(self)
-        self.config(menu=meniu_principal)
-
-        # Adăugăm opțiuni în meniu
-        meniu_principal.add_command(label="Număr de conturi", command=self.afisare_numar_conturi)
-        meniu_principal.add_command(label="Creare cont nou", command=self.deschide_creare_cont)
-        meniu_principal.add_command(label="Ștergere cont", command=self.deschide_stergere_cont)
-        meniu_principal.add_command(label="Afișare sold cont", command=self.deschide_afisare_sold)
-        meniu_principal.add_command(label="Salvare în fișier CSV", command=self.salvare_in_csv)
-        meniu_principal.add_command(label="Ieșire", command=self.destroy)
+        self.create_menu()
 
     def afisare_bun_venit(self):
         label_bun_venit = tk.Label(self, text="Bun venit la banca Ana Pug - ITSchoolBank!", font=("Arial", 20, "bold"), bg="lightblue", fg="darkblue")
@@ -57,6 +49,34 @@ class ITSchoolBankGUI(tk.Tk):
 
         label_mesaj = tk.Label(self, text="Cu ce vă pot ajuta astăzi?", font=("Arial", 16), bg="lightblue", fg="darkblue")
         label_mesaj.pack(pady=10)
+
+    def load_data(self):
+        try:
+            with open("conturi.csv", newline='') as csvfile:
+                reader = csv.DictReader(csvfile)
+                for row in reader:
+                    nume = row['Nume']
+                    prenume = row['Prenume']
+                    iban = row['IBAN']
+                    sold = float(row['Sold'])
+                    tip_cont = row['Tip Cont']
+                    cont_nou = ContBancar(nume, prenume, iban, sold, tip_cont)
+                    self.conturi.append(cont_nou)
+        except FileNotFoundError:
+            messagebox.showwarning("Avertizare", "Fișierul 'conturi.csv' nu a fost găsit. Nu există conturi încărcate.")
+
+    def create_menu(self):
+        meniu_principal = tk.Menu(self)
+        self.config(menu=meniu_principal)
+
+        meniu_principal.add_command(label="Număr de conturi", command=self.afisare_numar_conturi)
+        meniu_principal.add_command(label="Creare cont nou", command=self.deschide_creare_cont)
+        meniu_principal.add_command(label="Ștergere cont", command=self.deschide_stergere_cont)
+        meniu_principal.add_command(label="Afișare sold cont", command=self.deschide_afisare_sold)
+        meniu_principal.add_command(label="Afișare Detalii Cont", command=self.afisare_detalii_cont)
+        meniu_principal.add_command(label="Retragere Bani", command=self.deschide_retragere_bani)
+        meniu_principal.add_command(label="Salvare în fișier CSV", command=self.salvare_in_csv)
+        meniu_principal.add_command(label="Ieșire", command=self.on_exit)
 
     def afisare_numar_conturi(self):
         messagebox.showinfo("Număr de conturi", f"Numărul total de conturi înregistrate: {len(self.conturi)}")
@@ -69,6 +89,9 @@ class ITSchoolBankGUI(tk.Tk):
 
     def deschide_afisare_sold(self):
         dialog_afisare_sold = AfisareSoldDialog(self)
+
+    def deschide_retragere_bani(self):
+        dialog_retragere_bani = RetragereBaniDialog(self)
 
     def salvare_in_csv(self):
         fisier_csv = "conturi.csv"
@@ -85,6 +108,27 @@ class ITSchoolBankGUI(tk.Tk):
                     'Sold': cont.sold,
                     'Tip Cont': cont.tip_cont
                 })
+
+    def save_data_on_exit(self):
+        self.salvare_in_csv()
+
+    def on_exit(self):
+        self.save_data_on_exit()  # Salvăm datele înainte de a închide aplicația
+        self.destroy()
+
+    def afisare_detalii_cont(self):
+        iban = simpledialog.askstring("Afișare Detalii Cont", "Introduceți IBAN-ul contului:")
+        if iban:
+            cont_gasit = None
+            for cont in self.conturi:
+                if cont.iban == iban:
+                    cont_gasit = cont
+                    break
+
+            if cont_gasit:
+                messagebox.showinfo("Detalii Cont", cont_gasit.afiseaza_informatii())
+            else:
+                messagebox.showerror("Eroare", "Contul cu IBAN-ul introdus nu a fost găsit în sistem.")
 
 class CreareContDialog(tk.Toplevel):
     def __init__(self, master):
@@ -192,6 +236,43 @@ class AfisareSoldDialog(tk.Toplevel):
         else:
             messagebox.showerror("Eroare", "IBAN-ul introdus nu a fost găsit în sistem.")
 
+class RetragereBaniDialog(tk.Toplevel):
+    def __init__(self, master):
+        super().__init__(master)
+        self.title("Retragere Bani")
+        self.geometry("300x200")
+        self.configure(bg='lightgreen')
+
+        self.master = master
+
+        tk.Label(self, text="IBAN Cont:").pack()
+        self.iban_entry = tk.Entry(self)
+        self.iban_entry.pack()
+
+        tk.Label(self, text="Suma de retras:").pack()
+        self.suma_entry = tk.Entry(self)
+        self.suma_entry.pack()
+
+        tk.Button(self, text="Retragere Bani", command=self.retragere_bani).pack()
+
+    def retragere_bani(self):
+        iban = self.iban_entry.get()
+        suma = float(self.suma_entry.get())
+
+        cont_gasit = None
+        for cont in self.master.conturi:
+            if cont.iban == iban:
+                cont_gasit = cont
+                break
+
+        if cont_gasit:
+            rezultat = cont_gasit.retrage_bani(suma)
+            messagebox.showinfo("Rezultat Retragere", rezultat)
+            self.destroy()
+        else:
+            messagebox.showerror("Eroare", "IBAN-ul introdus nu a fost găsit în sistem.")
+
 if __name__ == "__main__":
     app = ITSchoolBankGUI()
+    app.protocol("WM_DELETE_WINDOW", app.on_exit)  # Apelează app.on_exit la închidere
     app.mainloop()
