@@ -27,20 +27,24 @@ class ContBancar:
         else:
             return "Fonduri insuficiente pentru retragerea sumei solicitate."
 
+    def transfera_bani(self, cont_destinatie, suma):
+        if suma > 0 and self.sold >= suma:
+            self.sold -= suma
+            cont_destinatie.sold += suma
+            return f"Transfer de {suma} {self.tip_cont} efectuat către IBAN-ul {cont_destinatie.iban}"
+        else:
+            return "Fonduri insuficiente pentru transferul sumei solicitate."
+
 class ITSchoolBankGUI(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Ana Pug - Bun venit la ITSchoolBank")
         self.geometry("600x400")
-        self.configure(bg='lightblue')  # Setăm culoarea fundalului
+        self.configure(bg='lightblue')
 
-        # Creăm fereastra de bun venit
         self.afisare_bun_venit()
-
         self.conturi = []
-        self.load_data()  # Încarcăm datele din fișierul CSV
-
-        # Creare meniu principal
+        self.load_data()
         self.create_menu()
 
     def afisare_bun_venit(self):
@@ -75,6 +79,7 @@ class ITSchoolBankGUI(tk.Tk):
         meniu_principal.add_command(label="Afișare sold cont", command=self.deschide_afisare_sold)
         meniu_principal.add_command(label="Afișare Detalii Cont", command=self.afisare_detalii_cont)
         meniu_principal.add_command(label="Retragere Bani", command=self.deschide_retragere_bani)
+        meniu_principal.add_command(label="Transfer Bani", command=self.deschide_transfer_bani)
         meniu_principal.add_command(label="Salvare în fișier CSV", command=self.salvare_in_csv)
         meniu_principal.add_command(label="Ieșire", command=self.on_exit)
 
@@ -92,6 +97,9 @@ class ITSchoolBankGUI(tk.Tk):
 
     def deschide_retragere_bani(self):
         dialog_retragere_bani = RetragereBaniDialog(self)
+
+    def deschide_transfer_bani(self):
+        dialog_transfer_bani = TransferBaniDialog(self)
 
     def salvare_in_csv(self):
         fisier_csv = "conturi.csv"
@@ -113,18 +121,13 @@ class ITSchoolBankGUI(tk.Tk):
         self.salvare_in_csv()
 
     def on_exit(self):
-        self.save_data_on_exit()  # Salvăm datele înainte de a închide aplicația
+        self.save_data_on_exit()
         self.destroy()
 
     def afisare_detalii_cont(self):
         iban = simpledialog.askstring("Afișare Detalii Cont", "Introduceți IBAN-ul contului:")
         if iban:
-            cont_gasit = None
-            for cont in self.conturi:
-                if cont.iban == iban:
-                    cont_gasit = cont
-                    break
-
+            cont_gasit = next((cont for cont in self.conturi if cont.iban == iban), None)
             if cont_gasit:
                 messagebox.showinfo("Detalii Cont", cont_gasit.afiseaza_informatii())
             else:
@@ -134,12 +137,11 @@ class CreareContDialog(tk.Toplevel):
     def __init__(self, master):
         super().__init__(master)
         self.title("Creare Cont Nou")
-        self.geometry("300x200")
-        self.configure(bg='lightgreen')  # Setăm culoarea fundalului
+        self.geometry("300x250")
+        self.configure(bg='lightgreen')
 
         self.master = master
 
-        # Elemente GUI pentru introducerea datelor contului nou
         tk.Label(self, text="Nume:").pack()
         self.nume_entry = tk.Entry(self)
         self.nume_entry.pack()
@@ -152,7 +154,7 @@ class CreareContDialog(tk.Toplevel):
         self.iban_entry = tk.Entry(self)
         self.iban_entry.pack()
 
-        tk.Label(self, text="Sold:").pack()
+        tk.Label(self, text="Sold (opțional):").pack()
         self.sold_entry = tk.Entry(self)
         self.sold_entry.pack()
 
@@ -213,7 +215,7 @@ class AfisareSoldDialog(tk.Toplevel):
         self.iban_entry = tk.Entry(self)
         self.iban_entry.pack()
 
-        tk.Label(self, text="Suma de depus:").pack()
+        tk.Label(self, text="Suma de depus (opțional):").pack()
         self.suma_entry = tk.Entry(self)
         self.suma_entry.pack()
 
@@ -221,18 +223,14 @@ class AfisareSoldDialog(tk.Toplevel):
 
     def afisare_si_depunere_sold(self):
         iban = self.iban_entry.get()
-        suma = float(self.suma_entry.get())
+        suma = float(self.suma_entry.get()) if self.suma_entry.get() else 0
 
-        cont_gasit = None
-        for cont in self.master.conturi:
-            if cont.iban == iban:
-                cont_gasit = cont
-                break
-
+        cont_gasit = next((cont for cont in self.master.conturi if cont.iban == iban), None)
         if cont_gasit:
-            cont_gasit.depune_bani(suma)  # Depune suma în cont
-            messagebox.showinfo("Depunere Reușită", f"Ai depus {suma} {cont_gasit.tip_cont} în contul cu IBAN-ul {iban}.")
-            self.destroy()
+            if suma > 0:
+                cont_gasit.depune_bani(suma)
+                messagebox.showinfo("Depunere Reușită", f"Ai depus {suma} {cont_gasit.tip_cont} în contul cu IBAN-ul {iban}.")
+            messagebox.showinfo("Informații Cont", cont_gasit.afiseaza_informatii())
         else:
             messagebox.showerror("Eroare", "IBAN-ul introdus nu a fost găsit în sistem.")
 
@@ -259,12 +257,7 @@ class RetragereBaniDialog(tk.Toplevel):
         iban = self.iban_entry.get()
         suma = float(self.suma_entry.get())
 
-        cont_gasit = None
-        for cont in self.master.conturi:
-            if cont.iban == iban:
-                cont_gasit = cont
-                break
-
+        cont_gasit = next((cont for cont in self.master.conturi if cont.iban == iban), None)
         if cont_gasit:
             rezultat = cont_gasit.retrage_bani(suma)
             messagebox.showinfo("Rezultat Retragere", rezultat)
@@ -272,7 +265,45 @@ class RetragereBaniDialog(tk.Toplevel):
         else:
             messagebox.showerror("Eroare", "IBAN-ul introdus nu a fost găsit în sistem.")
 
+class TransferBaniDialog(tk.Toplevel):
+    def __init__(self, master):
+        super().__init__(master)
+        self.title("Transfer Bani")
+        self.geometry("300x250")
+        self.configure(bg='lightgreen')
+
+        self.master = master
+
+        tk.Label(self, text="IBAN Cont Sursă:").pack()
+        self.iban_sursa_entry = tk.Entry(self)
+        self.iban_sursa_entry.pack()
+
+        tk.Label(self, text="IBAN Cont Destinație:").pack()
+        self.iban_destinatie_entry = tk.Entry(self)
+        self.iban_destinatie_entry.pack()
+
+        tk.Label(self, text="Suma de transferat:").pack()
+        self.suma_entry = tk.Entry(self)
+        self.suma_entry.pack()
+
+        tk.Button(self, text="Transfer Bani", command=self.transfera_bani).pack()
+
+    def transfera_bani(self):
+        iban_sursa = self.iban_sursa_entry.get()
+        iban_destinatie = self.iban_destinatie_entry.get()
+        suma = float(self.suma_entry.get())
+
+        cont_sursa = next((cont for cont in self.master.conturi if cont.iban == iban_sursa), None)
+        cont_destinatie = next((cont for cont in self.master.conturi if cont.iban == iban_destinatie), None)
+
+        if cont_sursa and cont_destinatie:
+            rezultat = cont_sursa.transfera_bani(cont_destinatie, suma)
+            messagebox.showinfo("Rezultat Transfer", rezultat)
+            self.destroy()
+        else:
+            messagebox.showerror("Eroare", "Contul sursă sau destinație nu au fost găsite în sistem.")
+
 if __name__ == "__main__":
     app = ITSchoolBankGUI()
-    app.protocol("WM_DELETE_WINDOW", app.on_exit)  # Apelează app.on_exit la închidere
+    app.protocol("WM_DELETE_WINDOW", app.on_exit)
     app.mainloop()
