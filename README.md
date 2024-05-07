@@ -4,7 +4,7 @@ Bun venit la ITSchoolBank! Acest proiect este o aplicație simplă de gestionare
 
 ## Cum să folosești
 
-1. Instalează Python 3.
+1. Instalează Python .
 2. Clonează acest repository.
 3. Rulează `main.py` pentru a deschide aplicația.
 4. Explorează meniul și funcționalitățile oferite.
